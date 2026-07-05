@@ -1,0 +1,52 @@
+======================================================================
+RINGKASAN INSIGHT BISNIS - PENJUALAN WIFI
+======================================================================
+
+1. TREN PENJUALAN
+   - Revenue naik sebesar 6.67% dari bulan pertama
+     ke bulan terakhir data.
+   - Rata-rata revenue per bulan: Rp 2,847,474,833
+   - Variasi (CoV) antar bulan: 2.83% (relatif stabil)
+
+2. AREA DENGAN PERFORMA TERBAIK
+   - Area dengan revenue tertinggi : GARUT (Rp 783,878,900)
+   - Area dengan revenue terendah  : KAB PANDEGLANG (Rp 516,509,400)
+   - Area dengan pelanggan baru terbanyak: GARUT (2,249 pelanggan)
+
+3. PAKET WIFI PALING LAKU
+   - Revenue tertinggi  : Paket 100 Mbps (Rp 6,289,065,000)
+   - Pelanggan baru terbanyak: Paket 60 Mbps (29,688 pelanggan)
+   - Interpretasi: paket entry-level menjadi volume driver,
+     sedangkan paket premium menjadi margin driver.
+
+4. PENGARUH CHURN TERHADAP REVENUE
+   - Korelasi churn vs revenue   : 0.994
+   - Korelasi new_cust vs revenue: 0.996
+   - Total pelanggan baru (1 tahun): 98,159
+   - Total churn (1 tahun)         : 397,780
+   - Churn cenderung bergerak SEARAH dengan revenue (korelasi positif). Hal ini terjadi karena churn rate relatif konstan setiap bulan dan jumlah pelanggan baru (yang berkorelasi sangat kuat dengan revenue) mendominasi pengaruh terhadap revenue. Net pelanggan (new - churn) hampir selalu mendekati nol, menunjukkan kondisi 'replacement equilibrium' - pelanggan keluar diimbangi pelanggan baru.
+
+5. PREDIKSI KONDISI 1 TAHUN KE DEPAN
+   - Rata-rata forecast revenue (6 bulan ke depan): Rp 2,846,919,914/bulan
+   - Total forecast 6 bulan ke depan: Rp 17,081,519,487
+   - Estimasi proyeksi total 12 bulan ke depan: Rp 34,163,038,974
+   - Model SARIMA memprediksi kondisi revenue relatif STABIL/FLAT,
+     tanpa lonjakan atau penurunan signifikan jika tidak ada
+     intervensi bisnis baru.
+
+======================================================================
+REKOMENDASI BISNIS
+======================================================================
+1. Tekan churn rate melalui program retensi, diskon perpanjangan,
+   dan peningkatan kualitas layanan, karena pertumbuhan pelanggan
+   baru saat ini hanya menutupi pelanggan yang keluar.
+2. Dorong upsell dari paket entry-level ke paket menengah
+   (100-300 Mbps) untuk meningkatkan margin tanpa kehilangan
+   basis pelanggan.
+3. Replikasi strategi area top performer (GARUT) ke area
+   dengan performa rendah seperti KAB PANDEGLANG.
+4. Tingkatkan akuisisi pelanggan baru di kota besar yang masih
+   memiliki revenue relatif rendah dibanding potensi pasarnya.
+5. Gunakan hasil forecast SARIMA sebagai baseline target, lalu
+   tetapkan target pertumbuhan inkremental (10-15% YoY) melalui
+   kombinasi strategi retensi dan akuisisi.
