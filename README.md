@@ -38,7 +38,7 @@ Executive view summarizing key performance indicators (KPIs), structural sales g
 
 ## 📈 Model Performance
 The predictive engine is evaluated using standard forecasting metrics to ensure accuracy in industrial applications:
-* **Mean Absolute Percentage Error (MAPE):** *[Silakan buka file `mape_value.txt` Anda dan tuliskan angka persentasenya di sini, contoh: 5.4%]* 
+* **Mean Absolute Percentage Error (MAPE):** *1.85%* 
 
 ## 💡 Key Business Impact
 1. **Data-Driven Budgeting:** Shifts procurement planning from intuitive guessing to actual mathematical forecasting models.
