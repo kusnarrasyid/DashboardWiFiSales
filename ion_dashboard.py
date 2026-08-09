@@ -100,6 +100,12 @@ html, body, .stApp {{
 [data-testid="stToolbar"] {{ display: none; }}
 .stDeployButton {{ display: none; }}
 
+/* ── Force sidebar always visible, hide collapse button ─────────── */
+[data-testid="stSidebarCollapseButton"] {{ display: none !important; }}
+[data-testid="collapsedControl"] {{ display: none !important; }}
+[data-testid="stSidebar"] {{ display: block !important; visibility: visible !important; }}
+section[data-testid="stSidebar"] {{ transform: none !important; left: 0 !important; }}
+
 /* ── Main container tight ───────────────────────────────────────── */
 .block-container {{
     padding: 0 !important;
@@ -732,7 +738,6 @@ def metric_card(icon, bg, label, value, delta=None, delta_dir="up"):
 if page == "🏠 Overview":
     wrap = st.container()
     with wrap:
-        st.markdown("<div class='ion-page-wrap'>", unsafe_allow_html=True)
 
         # Row 1 — 5 metric cards
         c1, c2, c3, c4, c5 = st.columns(5)
@@ -760,7 +765,6 @@ if page == "🏠 Overview":
         col_main, col_donut = st.columns([2.2, 1])
 
         with col_main:
-            st.markdown("<div class='ion-card'>", unsafe_allow_html=True)
             st.markdown("**Tren Penjualan & Pendapatan**")
 
             fig = make_subplots(specs=[[{"secondary_y": True}]])
@@ -781,7 +785,6 @@ if page == "🏠 Overview":
             st.plotly_chart(fig, use_container_width=True)
 
         with col_donut:
-            st.markdown("<div class='ion-card'>", unsafe_allow_html=True)
             st.markdown("**Penjualan per Paket**")
             pkg_new_df = pkg_new.reset_index()
             pkg_new_df.columns = ["package","new_customers"]
@@ -811,7 +814,6 @@ if page == "🏠 Overview":
         c3a, c3b, c3c = st.columns(3)
 
         with c3a:
-            st.markdown("<div class='ion-card'>", unsafe_allow_html=True)
             st.markdown("**Top 5 Wilayah (Pendapatan)**")
             top5 = area_rev.head(5)
             max_val = top5.max()
@@ -829,7 +831,6 @@ if page == "🏠 Overview":
             st.markdown(rows, unsafe_allow_html=True)
 
         with c3b:
-            st.markdown("<div class='ion-card'>", unsafe_allow_html=True)
             st.markdown(f"**Pertumbuhan Pelanggan**")
             st.markdown(f"<div style='font-size:1.8rem;font-weight:800;color:{C['text']};font-family:JetBrains Mono,monospace;'>Total {avg_tc:,.0f}</div>", unsafe_allow_html=True)
             st.markdown(f"<div style='color:{C['success']};font-size:0.85rem;font-weight:600;margin-bottom:10px;'>▲ {growth_new:.1f}%</div>", unsafe_allow_html=True)
@@ -846,7 +847,6 @@ if page == "🏠 Overview":
             st.plotly_chart(fig3, use_container_width=True)
 
         with c3c:
-            st.markdown("<div class='ion-card'>", unsafe_allow_html=True)
             st.markdown("**Prediksi Penjualan (6 Bulan ke Depan)**")
             if forecast_df is not None and fitted_df is not None:
                 fig4 = go.Figure()
@@ -915,7 +915,6 @@ if page == "🏠 Overview":
 # PAGE: PENJUALAN
 # ─────────────────────────────────────────────────────────────────────────────
 elif page == "📊 Penjualan":
-    st.markdown("<div class='ion-page-wrap'>", unsafe_allow_html=True)
 
     c1, c2, c3, c4 = st.columns(4)
     with c1:
@@ -934,7 +933,6 @@ elif page == "📊 Penjualan":
 
     col1, col2 = st.columns([3, 2])
     with col1:
-        st.markdown("<div class='ion-card'>", unsafe_allow_html=True)
         st.markdown("**Revenue Bulanan**")
         fig = px.bar(monthly_all, x="month", y="revenue",
                      color_discrete_sequence=[C["primary"]])
@@ -945,7 +943,6 @@ elif page == "📊 Penjualan":
         st.plotly_chart(fig, use_container_width=True)
 
     with col2:
-        st.markdown("<div class='ion-card'>", unsafe_allow_html=True)
         st.markdown("**Revenue per Paket**")
         pkg_df = pkg_rev.reset_index()
         pkg_df.columns = ["package","revenue"]
@@ -955,7 +952,6 @@ elif page == "📊 Penjualan":
         fig2.update_layout(showlegend=False)
         st.plotly_chart(fig2, use_container_width=True)
 
-    st.markdown("<div class='ion-card'>", unsafe_allow_html=True)
     st.markdown("**Detail Revenue Bulanan**")
     display = monthly_all.copy()
     display["month"] = display["month"].dt.strftime("%B %Y")
@@ -969,7 +965,6 @@ elif page == "📊 Penjualan":
 # PAGE: PELANGGAN
 # ─────────────────────────────────────────────────────────────────────────────
 elif page == "👥 Pelanggan":
-    st.markdown("<div class='ion-page-wrap'>", unsafe_allow_html=True)
 
     c1, c2, c3, c4 = st.columns(4)
     with c1:
@@ -985,7 +980,6 @@ elif page == "👥 Pelanggan":
 
     col1, col2 = st.columns(2)
     with col1:
-        st.markdown("<div class='ion-card'>", unsafe_allow_html=True)
         st.markdown("**Pertumbuhan Pelanggan Aktif**")
         fig = go.Figure(go.Scatter(
             x=monthly_all["month"], y=monthly_all["total_customers"],
@@ -997,7 +991,6 @@ elif page == "👥 Pelanggan":
         st.plotly_chart(fig, use_container_width=True)
 
     with col2:
-        st.markdown("<div class='ion-card'>", unsafe_allow_html=True)
         st.markdown("**New Customers vs Churn per Bulan**")
         fig2 = go.Figure()
         fig2.add_trace(go.Bar(x=monthly_all["month"], y=monthly_all["new_customers"],
@@ -1009,7 +1002,6 @@ elif page == "👥 Pelanggan":
         sfig(fig2)
         st.plotly_chart(fig2, use_container_width=True)
 
-    st.markdown("<div class='ion-card'>", unsafe_allow_html=True)
     st.markdown("**Distribusi Pelanggan per Paket**")
     pkg_tc = df.groupby("package")["total_customers"].sum().reset_index()
     fig3 = px.bar(pkg_tc, x="package", y="total_customers",
@@ -1023,7 +1015,6 @@ elif page == "👥 Pelanggan":
 # PAGE: PAKET LAYANAN
 # ─────────────────────────────────────────────────────────────────────────────
 elif page == "📦 Paket Layanan":
-    st.markdown("<div class='ion-page-wrap'>", unsafe_allow_html=True)
 
     packages = sorted(df["package"].unique())
     cols = st.columns(len(packages))
@@ -1042,7 +1033,6 @@ elif page == "📦 Paket Layanan":
 
     col1, col2 = st.columns(2)
     with col1:
-        st.markdown("<div class='ion-card'>", unsafe_allow_html=True)
         st.markdown("**Revenue per Paket**")
         pkg_df = pkg_rev.reset_index(); pkg_df.columns = ["package","revenue"]
         fig = px.pie(pkg_df, names="package", values="revenue", hole=0.50,
@@ -1051,7 +1041,6 @@ elif page == "📦 Paket Layanan":
         st.plotly_chart(fig, use_container_width=True)
 
     with col2:
-        st.markdown("<div class='ion-card'>", unsafe_allow_html=True)
         st.markdown("**Pelanggan Baru per Paket**")
         pkg_nc = pkg_new.reset_index(); pkg_nc.columns = ["package","new_customers"]
         fig2 = px.bar(pkg_nc, x="package", y="new_customers",
@@ -1060,7 +1049,6 @@ elif page == "📦 Paket Layanan":
         fig2.update_layout(showlegend=False)
         st.plotly_chart(fig2, use_container_width=True)
 
-    st.markdown("<div class='ion-card'>", unsafe_allow_html=True)
     st.markdown("**Tren Revenue per Paket (Bulanan)**")
     pkg_monthly = df.groupby(["month","package"])["revenue"].sum().reset_index()
     fig3 = px.line(pkg_monthly, x="month", y="revenue", color="package",
@@ -1073,7 +1061,6 @@ elif page == "📦 Paket Layanan":
 # PAGE: WILAYAH
 # ─────────────────────────────────────────────────────────────────────────────
 elif page == "🗺️ Wilayah":
-    st.markdown("<div class='ion-page-wrap'>", unsafe_allow_html=True)
 
     c1, c2, c3 = st.columns(3)
     with c1:
@@ -1087,7 +1074,6 @@ elif page == "🗺️ Wilayah":
 
     col1, col2 = st.columns([3,2])
     with col1:
-        st.markdown("<div class='ion-card'>", unsafe_allow_html=True)
         st.markdown("**Top 15 Wilayah Berdasarkan Revenue**")
         top15 = area_rev.head(15).reset_index()
         top15.columns = ["area","revenue"]
@@ -1098,7 +1084,6 @@ elif page == "🗺️ Wilayah":
         st.plotly_chart(fig, use_container_width=True)
 
     with col2:
-        st.markdown("<div class='ion-card'>", unsafe_allow_html=True)
         st.markdown("**Top 5 Wilayah**")
         top5 = area_rev.head(5)
         max_v = top5.max()
@@ -1132,7 +1117,6 @@ elif page == "🗺️ Wilayah":
 # PAGE: EDA EXPLORER
 # ─────────────────────────────────────────────────────────────────────────────
 elif page == "🔍 EDA Explorer":
-    st.markdown("<div class='ion-page-wrap'>", unsafe_allow_html=True)
 
     col_f1, col_f2 = st.columns(2)
     with col_f1:
@@ -1144,7 +1128,6 @@ elif page == "🔍 EDA Explorer":
              df["package"].isin(sel_pkg if sel_pkg else df["package"].unique())]
     fmonthly = fdf.groupby("month").agg(revenue=("revenue","sum"), new_customers=("new_customers","sum")).reset_index()
 
-    st.markdown("<div class='ion-card'>", unsafe_allow_html=True)
     st.markdown("**Tren Revenue (Filtered)**")
     fig = px.line(fmonthly, x="month", y="revenue", markers=True,
                   color_discrete_sequence=[C["primary"]])
@@ -1153,7 +1136,6 @@ elif page == "🔍 EDA Explorer":
 
     col1, col2 = st.columns(2)
     with col1:
-        st.markdown("<div class='ion-card'>", unsafe_allow_html=True)
         st.markdown("**Revenue per Area (Filtered)**")
         f_area = fdf.groupby("area")["revenue"].sum().sort_values(ascending=False).head(10).reset_index()
         fig2 = px.bar(f_area, x="revenue", y="area", orientation="h",
@@ -1163,7 +1145,6 @@ elif page == "🔍 EDA Explorer":
         st.plotly_chart(fig2, use_container_width=True)
 
     with col2:
-        st.markdown("<div class='ion-card'>", unsafe_allow_html=True)
         st.markdown("**Revenue per Paket (Filtered)**")
         f_pkg = fdf.groupby("package")["revenue"].sum().reset_index()
         fig3 = px.bar(f_pkg, x="package", y="revenue",
@@ -1178,9 +1159,7 @@ elif page == "🔍 EDA Explorer":
 # PAGE: TREN & POLA
 # ─────────────────────────────────────────────────────────────────────────────
 elif page == "📈 Tren & Pola":
-    st.markdown("<div class='ion-page-wrap'>", unsafe_allow_html=True)
 
-    st.markdown("<div class='ion-card'>", unsafe_allow_html=True)
     st.markdown("**Revenue Bulanan — Trend Line**")
     x_num = np.arange(len(monthly_all))
     z = np.polyfit(x_num, monthly_all["revenue"], 1)
@@ -1196,7 +1175,6 @@ elif page == "📈 Tren & Pola":
 
     col1, col2 = st.columns(2)
     with col1:
-        st.markdown("<div class='ion-card'>", unsafe_allow_html=True)
         st.markdown("**Heatmap Revenue (Area × Paket)**")
         pivot = df.groupby(["area","package"])["revenue"].sum().reset_index()
         pivot_wide = pivot.pivot(index="area", columns="package", values="revenue").fillna(0)
@@ -1206,7 +1184,6 @@ elif page == "📈 Tren & Pola":
         st.plotly_chart(fig2, use_container_width=True)
 
     with col2:
-        st.markdown("<div class='ion-card'>", unsafe_allow_html=True)
         st.markdown("**Month-over-Month Growth (%)**")
         mom = monthly_all["revenue"].pct_change() * 100
         colors = [C["success"] if v >= 0 else C["danger"] for v in mom.fillna(0)]
@@ -1224,14 +1201,12 @@ elif page == "📈 Tren & Pola":
 # PAGE: KORELASI
 # ─────────────────────────────────────────────────────────────────────────────
 elif page == "🔗 Korelasi":
-    st.markdown("<div class='ion-page-wrap'>", unsafe_allow_html=True)
 
     num_cols = ["revenue","new_customers","churn_customers","total_customers"]
     corr_matrix = monthly_all[num_cols].corr()
 
     col1, col2 = st.columns(2)
     with col1:
-        st.markdown("<div class='ion-card'>", unsafe_allow_html=True)
         st.markdown("**Correlation Heatmap**")
         fig = px.imshow(corr_matrix, text_auto=".2f",
                         color_continuous_scale=["#EF4444","#0B0E1A","#4F8BFF"],
@@ -1240,7 +1215,6 @@ elif page == "🔗 Korelasi":
         st.plotly_chart(fig, use_container_width=True)
 
     with col2:
-        st.markdown("<div class='ion-card'>", unsafe_allow_html=True)
         st.markdown("**Scatter: New Customers vs Revenue**")
         fig2 = px.scatter(monthly_all, x="new_customers", y="revenue",
                           trendline="ols", color_discrete_sequence=[C["primary"]],
@@ -1248,7 +1222,6 @@ elif page == "🔗 Korelasi":
         sfig(fig2, h=340)
         st.plotly_chart(fig2, use_container_width=True)
 
-    st.markdown("<div class='ion-card'>", unsafe_allow_html=True)
     st.markdown("**Scatter: Churn vs Revenue (Feb–Des)**")
     clean = monthly_all.iloc[1:]
     fig3 = px.scatter(clean, x="churn_customers", y="revenue",
@@ -1272,7 +1245,6 @@ elif page == "🔗 Korelasi":
 # PAGE: PREDIKSI PENJUALAN
 # ─────────────────────────────────────────────────────────────────────────────
 elif page == "🔮 Prediksi Penjualan":
-    st.markdown("<div class='ion-page-wrap'>", unsafe_allow_html=True)
 
     if forecast_df is None:
         st.warning("⚠️ File forecast tidak ditemukan. Jalankan 04_forecast_evaluation.py terlebih dahulu.")
@@ -1291,7 +1263,6 @@ elif page == "🔮 Prediksi Penjualan":
             st.markdown(metric_card("💰","#F59E0B","Total Forecast 6 Bln", fmt_rp(total_fc)), unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("<div class='ion-card'>", unsafe_allow_html=True)
         st.markdown("**Aktual vs Prediksi Revenue**")
         actual_m = df.groupby("month")["revenue"].sum().reset_index()
         fig = go.Figure()
@@ -1316,7 +1287,6 @@ elif page == "🔮 Prediksi Penjualan":
         sfig(fig, h=400)
         st.plotly_chart(fig, use_container_width=True)
 
-        st.markdown("<div class='ion-card'>", unsafe_allow_html=True)
         st.markdown("**Tabel Forecast 6 Bulan**")
         tbl = forecast_df.copy()
         tbl.columns = ["Bulan","Prediksi Revenue","Batas Bawah (95%)","Batas Atas (95%)"]
@@ -1332,13 +1302,11 @@ elif page == "🔮 Prediksi Penjualan":
 # PAGE: SCENARIO PLANNING
 # ─────────────────────────────────────────────────────────────────────────────
 elif page == "🎯 Scenario Planning":
-    st.markdown("<div class='ion-page-wrap'>", unsafe_allow_html=True)
     st.markdown("**Simulasi Skenario Pertumbuhan Revenue**")
     st.caption("Sesuaikan slider untuk melihat proyeksi revenue berdasarkan asumsi pertumbuhan")
 
     col_s, col_r = st.columns([1,2])
     with col_s:
-        st.markdown("<div class='ion-card'>", unsafe_allow_html=True)
         st.markdown("**Parameter Skenario**")
         growth_pct = st.slider("Target Growth Bulanan (%)", -10, 30, 5)
         churn_red  = st.slider("Reduksi Churn Rate (%)", 0, 50, 10)
@@ -1346,7 +1314,6 @@ elif page == "🎯 Scenario Planning":
         months_fwd = st.slider("Proyeksi ke Depan (bulan)", 3, 24, 12)
 
     with col_r:
-        st.markdown("<div class='ion-card'>", unsafe_allow_html=True)
         base_rev = monthly_all["revenue"].iloc[-1]
         proj_months = pd.date_range(start=monthly_all["month"].iloc[-1] + pd.DateOffset(months=1),
                                     periods=months_fwd, freq="MS")
@@ -1381,7 +1348,6 @@ elif page == "🎯 Scenario Planning":
 # PAGE: EVALUASI MODEL
 # ─────────────────────────────────────────────────────────────────────────────
 elif page == "📉 Evaluasi Model":
-    st.markdown("<div class='ion-page-wrap'>", unsafe_allow_html=True)
 
     if fitted_df is None:
         st.warning("Jalankan 04_forecast_evaluation.py terlebih dahulu.")
@@ -1406,7 +1372,6 @@ elif page == "📉 Evaluasi Model":
         st.markdown("<br>", unsafe_allow_html=True)
         col1,col2 = st.columns(2)
         with col1:
-            st.markdown("<div class='ion-card'>", unsafe_allow_html=True)
             st.markdown("**Actual vs Fitted Revenue**")
             fig = go.Figure()
             fig.add_trace(go.Scatter(x=merged["month"], y=merged["revenue"],
@@ -1419,7 +1384,6 @@ elif page == "📉 Evaluasi Model":
             st.plotly_chart(fig, use_container_width=True)
 
         with col2:
-            st.markdown("<div class='ion-card'>", unsafe_allow_html=True)
             st.markdown("**Error per Bulan (%)**")
             bar_c = [C["success"] if v <= 5 else C["accent2"] if v <= 10 else C["danger"]
                      for v in merged["abs_pct"]]
@@ -1435,7 +1399,6 @@ elif page == "📉 Evaluasi Model":
 # PAGE: LAPORAN OTOMATIS
 # ─────────────────────────────────────────────────────────────────────────────
 elif page == "📋 Laporan Otomatis":
-    st.markdown("<div class='ion-page-wrap'>", unsafe_allow_html=True)
 
     best_area_name = area_rev.index[0]
     best_pkg_name  = pkg_rev.index[0]
@@ -1493,24 +1456,20 @@ elif page == "📋 Laporan Otomatis":
 # PAGE: EXPORT DATA
 # ─────────────────────────────────────────────────────────────────────────────
 elif page == "📥 Export Data":
-    st.markdown("<div class='ion-page-wrap'>", unsafe_allow_html=True)
     st.markdown("**Export & Download Data**")
 
     col1, col2 = st.columns(2)
     with col1:
-        st.markdown(f"<div class='ion-card'>", unsafe_allow_html=True)
         st.markdown("**📄 Data Penjualan Lengkap**")
         st.caption(f"{len(df):,} baris · {len(df.columns)} kolom")
         csv1 = df.to_csv(index=False).encode("utf-8")
         st.download_button("⬇️ Download data_penjualan.csv", csv1, "data_penjualan.csv","text/csv", use_container_width=True)
 
-        st.markdown("<div class='ion-card'>", unsafe_allow_html=True)
         st.markdown("**📊 Revenue Bulanan Agregat**")
         csv2 = monthly_all.to_csv(index=False).encode("utf-8")
         st.download_button("⬇️ Download monthly_revenue.csv", csv2, "monthly_revenue.csv","text/csv", use_container_width=True)
 
     with col2:
-        st.markdown("<div class='ion-card'>", unsafe_allow_html=True)
         st.markdown("**🔮 Hasil Forecast 6 Bulan**")
         if forecast_df is not None:
             csv3 = forecast_df.to_csv(index=False).encode("utf-8")
@@ -1518,13 +1477,11 @@ elif page == "📥 Export Data":
         else:
             st.caption("Jalankan 04_forecast_evaluation.py terlebih dahulu.")
 
-        st.markdown("<div class='ion-card'>", unsafe_allow_html=True)
         st.markdown("**🌍 Revenue per Area**")
         area_df = area_rev.reset_index()
         area_df.columns = ["area","total_revenue"]
         csv4 = area_df.to_csv(index=False).encode("utf-8")
         st.download_button("⬇️ Download revenue_per_area.csv", csv4, "revenue_per_area.csv","text/csv", use_container_width=True)
 
-    st.markdown("<div class='ion-card'>", unsafe_allow_html=True)
     st.markdown("**👁️ Preview Data**")
     st.dataframe(df.head(20), use_container_width=True, hide_index=True)
