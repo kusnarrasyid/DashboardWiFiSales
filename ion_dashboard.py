@@ -1410,7 +1410,7 @@ elif page == "📋 Laporan Otomatis":
     <div class='ion-card'>
         <div style='font-size:0.75rem;color:{C['muted']};text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px;font-weight:700;'>📋 Ringkasan Eksekutif</div>
         <div style='font-size:0.92rem;color:{C['text']};line-height:1.8;'>
-            Selama periode <b>Januari – Desember 2024</b>, ION Network mencatatkan total revenue
+            Selama periode <b>Januari – Desember 2025</b>, ION Network mencatatkan total revenue
             sebesar <b style='color:{C['primary']}'>{fmt_rp(total_rev)}</b> dengan pertumbuhan
             <b style='color:{C['success']}'>{growth_rev:+.1f}%</b> dari bulan pertama ke bulan terakhir.
             Total pelanggan baru yang berhasil diperoleh adalah <b>{total_new:,} pelanggan</b>.
@@ -1419,7 +1419,7 @@ elif page == "📋 Laporan Otomatis":
     """, unsafe_allow_html=True)
 
     insights = [
-        ("📈", C["primary"],  "Tren Penjualan", f"Revenue tumbuh {growth_rev:+.1f}% sepanjang 2024 dengan tren yang relatif stabil dan variasi bulanan kecil."),
+        ("📈", C["primary"],  "Tren Penjualan", f"Revenue tumbuh {growth_rev:+.1f}% sepanjang 2025 dengan tren yang relatif stabil dan variasi bulanan kecil."),
         ("🌍", C["accent"],   "Area Terbaik",   f"{best_area_name} adalah area dengan revenue tertinggi ({fmt_rp(area_rev.iloc[0])}). Perlu direplikasi ke area berkinerja rendah."),
         ("📦", C["primary2"], "Paket Terlaris",  f"Paket {best_pkg_name} menyumbang revenue tertinggi, sementara {best_pkg_vol} paling diminati pelanggan baru."),
         ("🔁", C["accent2"],  "Churn & Revenue", f"Korelasi churn vs revenue: {corr_cn:.2f}. Basis pelanggan stagnan karena new customer ≈ churn (replacement equilibrium)."),
