@@ -19,6 +19,7 @@ import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+import io
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -99,6 +100,29 @@ html, body, .stApp {{
 #MainMenu, footer, header {{ visibility: hidden; }}
 [data-testid="stToolbar"] {{ display: none; }}
 .stDeployButton {{ display: none; }}
+
+/* ── Sidebar nav buttons styled as nav items ─────────────────────── */
+[data-testid="stSidebar"] .stButton > button {{
+    background: transparent !important;
+    color: {C['muted']} !important;
+    border: none !important;
+    border-left: 3px solid transparent !important;
+    border-radius: 0 !important;
+    padding: 8px 16px !important;
+    font-size: 0.875rem !important;
+    font-weight: 500 !important;
+    text-align: left !important;
+    justify-content: flex-start !important;
+    box-shadow: none !important;
+    margin-bottom: 1px !important;
+    transition: background 0.15s, color 0.15s !important;
+}}
+[data-testid="stSidebar"] .stButton > button:hover {{
+    background: rgba(79,139,255,0.10) !important;
+    color: {C['text']} !important;
+    transform: none !important;
+    box-shadow: none !important;
+}}
 
 /* ── Force sidebar always visible, hide collapse button ─────────── */
 [data-testid="stSidebarCollapseButton"] {{ display: none !important; }}
@@ -243,7 +267,7 @@ div[data-testid="stHorizontalBlock"] {{ gap: 16px; }}
     color: white;
 }}
 .ion-page-wrap {{
-    padding: 24px 28px;
+    padding: 24px 40px 24px 44px;
 }}
 .ion-card {{
     background: {C['card']};
@@ -510,15 +534,25 @@ div[data-testid="stHorizontalBlock"] {{ gap: 16px; }}
 # ─────────────────────────────────────────────────────────────────────────────
 # LOAD DATA
 # ─────────────────────────────────────────────────────────────────────────────
+REQUIRED_COLS = {"month", "area", "package", "revenue", "new_customers",
+                 "churn_customers", "total_customers"}
+
 @st.cache_data
-def load_data():
+def load_data_default():
     df = pd.read_excel("dataset_wifi_with_total.xlsx")
     df["month"] = pd.to_datetime(df["month"])
     df["churn_customers"] = df["churn_customers"].fillna(0)
     return df
 
 @st.cache_data
-def load_forecast():
+def load_data_uploaded(file_bytes):
+    df = pd.read_excel(io.BytesIO(file_bytes))
+    df["month"] = pd.to_datetime(df["month"])
+    df["churn_customers"] = df["churn_customers"].fillna(0)
+    return df
+
+@st.cache_data
+def load_forecast_precomputed():
     try:
         fdf = pd.read_csv("forecast_precomputed.csv", parse_dates=["month"])
         fit = pd.read_csv("fitted_precomputed.csv", parse_dates=["month"])
@@ -528,8 +562,51 @@ def load_forecast():
     except:
         return None, None, None
 
-df = load_data()
-forecast_df, fitted_df, mape_val = load_forecast()
+@st.cache_data
+def compute_forecast(file_bytes):
+    from pmdarima import auto_arima
+    df_tmp = pd.read_excel(io.BytesIO(file_bytes))
+    df_tmp["month"] = pd.to_datetime(df_tmp["month"])
+    monthly = df_tmp.groupby("month")["revenue"].sum().reset_index()
+    monthly = monthly.set_index("month").asfreq("MS").sort_index()
+    model = auto_arima(
+        monthly["revenue"], seasonal=True, m=12, D=0, d=None,
+        error_action="ignore", suppress_warnings=True, stepwise=True
+    )
+    fitted = model.predict_in_sample()
+    actual = monthly["revenue"].values
+    mape   = float(np.mean(np.abs((actual - fitted) / actual)) * 100)
+    n_fc   = 6
+    fc, ci = model.predict(n_periods=n_fc, return_conf_int=True)
+    fc_idx = pd.date_range(
+        start=monthly.index[-1] + pd.DateOffset(months=1), periods=n_fc, freq="MS"
+    )
+    fdf = pd.DataFrame({
+        "month":            fc_idx,
+        "forecast_revenue": fc.round(0).astype(int),
+        "lower_95":         ci[:,0].round(0).astype(int),
+        "upper_95":         ci[:,1].round(0).astype(int),
+    })
+    fitdf = pd.DataFrame({
+        "month":          monthly.index,
+        "fitted_revenue": fitted.round(0).astype(int),
+    })
+    return fdf, fitdf, mape
+
+# ── Tentukan sumber data ──────────────────────────────────────────────────────
+_uploaded_bytes = st.session_state.get("uploaded_file_bytes", None)
+
+if _uploaded_bytes is not None:
+    df = load_data_uploaded(_uploaded_bytes)
+    missing_cols = REQUIRED_COLS - set(df.columns)
+    if missing_cols:
+        st.error(f"❌ File Excel tidak valid. Kolom yang kurang: {', '.join(missing_cols)}")
+        st.stop()
+    with st.spinner("⏳ Menghitung ulang forecast dari data baru... (~10 detik)"):
+        forecast_df, fitted_df, mape_val = compute_forecast(_uploaded_bytes)
+else:
+    df = load_data_default()
+    forecast_df, fitted_df, mape_val = load_forecast_precomputed()
 
 monthly_all = df.groupby("month").agg(
     revenue=("revenue","sum"),
@@ -590,43 +667,76 @@ with st.sidebar:
         st.session_state.theme = "light" if st.session_state.theme == "dark" else "dark"
         st.rerun()
 
-    st.markdown("<div class='ion-section-label'>MONITORING</div>", unsafe_allow_html=True)
-    menu = st.radio("nav", [
-        "🏠 Overview",
-        "📊 Penjualan",
-        "👥 Pelanggan",
-        "📦 Paket Layanan",
-        "🗺️ Wilayah",
-    ], label_visibility="collapsed", key="nav_monitoring")
+    # ── Upload data Excel baru ───────────────────────────────────────
+    st.markdown("<div class='ion-section-label'>DATA</div>", unsafe_allow_html=True)
+    uploaded = st.file_uploader(
+        "📂 Upload File Excel",
+        type=["xlsx"],
+        help="Kolom wajib: month, area, package, revenue, new_customers, churn_customers, total_customers",
+    )
+    if uploaded is not None:
+        fbytes = uploaded.read()
+        if st.session_state.get("uploaded_file_bytes") != fbytes:
+            st.session_state["uploaded_file_bytes"] = fbytes
+            st.session_state["uploaded_file_name"] = uploaded.name
+            load_data_uploaded.clear()
+            compute_forecast.clear()
+            st.rerun()
+    else:
+        if st.session_state.get("uploaded_file_bytes") is not None:
+            if st.button("🗑️ Hapus & kembali ke data default",
+                         use_container_width=True, key="btn_reset_data"):
+                st.session_state["uploaded_file_bytes"] = None
+                st.session_state["uploaded_file_name"] = None
+                load_data_uploaded.clear()
+                compute_forecast.clear()
+                st.rerun()
 
-    st.markdown("<div class='ion-section-label'>ANALYSIS</div>", unsafe_allow_html=True)
-    menu2 = st.radio("nav2", [
-        "🔍 EDA Explorer",
-        "📈 Tren & Pola",
-        "🔗 Korelasi",
-    ], label_visibility="collapsed", key="nav_analysis")
+    _src_name  = st.session_state.get("uploaded_file_name") or "dataset_wifi_with_total.xlsx"
+    _src_color = "#00D4AA" if st.session_state.get("uploaded_file_bytes") else C["primary"]
+    _src_icon  = "📁" if st.session_state.get("uploaded_file_bytes") else "💾"
+    st.markdown(
+        f"<div style='font-size:0.7rem;padding:5px 10px;"
+        f"background:{_src_color}18;border:1px solid {_src_color}44;"
+        f"border-radius:8px;color:{_src_color};font-weight:600;"
+        f"text-align:center;margin:4px 0 8px 0;"
+        f"word-break:break-all;line-height:1.4;'>"
+        f"{_src_icon} {_src_name}</div>",
+        unsafe_allow_html=True
+    )
 
-    st.markdown("<div class='ion-section-label'>FORECASTING</div>", unsafe_allow_html=True)
-    menu3 = st.radio("nav3", [
-        "🔮 Prediksi Penjualan",
-        "🎯 Scenario Planning",
-        "📉 Evaluasi Model",
-    ], label_visibility="collapsed", key="nav_forecast")
+    if "active_page" not in st.session_state:
+        st.session_state.active_page = "🏠 Overview"
 
-    st.markdown("<div class='ion-section-label'>LAPORAN</div>", unsafe_allow_html=True)
-    menu4 = st.radio("nav4", [
-        "📋 Laporan Otomatis",
-        "📥 Export Data",
-    ], label_visibility="collapsed", key="nav_laporan")
+    ALL_PAGES = [
+        ("MONITORING", ["🏠 Overview","📊 Penjualan","👥 Pelanggan","📦 Paket Layanan","🗺️ Wilayah"]),
+        ("ANALYSIS",   ["🔍 EDA Explorer","📈 Tren & Pola","🔗 Korelasi"]),
+        ("FORECASTING",["🔮 Prediksi Penjualan","🎯 Scenario Planning","📉 Evaluasi Model"]),
+        ("LAPORAN",    ["📋 Laporan Otomatis","📥 Export Data"]),
+    ]
+
+    for section_label, pages in ALL_PAGES:
+        st.markdown(f"<div class='ion-section-label'>{section_label}</div>", unsafe_allow_html=True)
+        for p in pages:
+            is_active = st.session_state.active_page == p
+            label = p
+            if is_active:
+                label = f"▌ {p}"
+            if st.button(label, key=f"navbtn_{p}", use_container_width=True):
+                st.session_state.active_page = p
+                st.rerun()
+
+    menu = menu2 = menu3 = menu4 = None
 
     # Source info
     last_month = df["month"].max().strftime("%d %b %Y")
+    file_label = st.session_state.get("uploaded_file_name") or "dataset_wifi_with_total.xlsx"
     st.markdown(f"""
     <div class='ion-source-box'>
         <div class='ion-source-icon'>🗄️</div>
         <div>
             <div class='ion-source-title'>Sumber Data</div>
-            <div class='ion-source-sub'>Database Penjualan</div>
+            <div class='ion-source-sub' style='word-break:break-all;'>{file_label}</div>
             <div class='ion-source-sub' style='margin-top:4px;'>
                 Terakhir diperbarui {last_month}
             </div>
@@ -638,32 +748,8 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
 
-# Determine active page
-active = menu
-for m in [menu2, menu3, menu4]:
-    if m:
-        if m != menu and m != menu2 and m != menu3 and m != menu4:
-            pass
-# Simple: last clicked wins — track with session state
-if "active_page" not in st.session_state:
-    st.session_state.active_page = "🏠 Overview"
-
-all_menus = {
-    "nav_monitoring": menu,
-    "nav_analysis": menu2,
-    "nav_forecast": menu3,
-    "nav_laporan": menu4,
-}
-# detect which radio changed by comparing to stored
-for k, v in all_menus.items():
-    prev_key = f"prev_{k}"
-    if prev_key not in st.session_state:
-        st.session_state[prev_key] = v
-    if st.session_state[prev_key] != v:
-        st.session_state.active_page = v
-        st.session_state[prev_key] = v
-
-page = st.session_state.active_page
+# Active page driven entirely by session_state (set by sidebar buttons above)
+page = st.session_state.get("active_page", "🏠 Overview")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # TOP NAVBAR (per page)
@@ -1410,7 +1496,7 @@ elif page == "📋 Laporan Otomatis":
     <div class='ion-card'>
         <div style='font-size:0.75rem;color:{C['muted']};text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px;font-weight:700;'>📋 Ringkasan Eksekutif</div>
         <div style='font-size:0.92rem;color:{C['text']};line-height:1.8;'>
-            Selama periode <b>Januari – Desember 2025</b>, ION Network mencatatkan total revenue
+            Selama periode <b>Januari – Desember 2024</b>, ION Network mencatatkan total revenue
             sebesar <b style='color:{C['primary']}'>{fmt_rp(total_rev)}</b> dengan pertumbuhan
             <b style='color:{C['success']}'>{growth_rev:+.1f}%</b> dari bulan pertama ke bulan terakhir.
             Total pelanggan baru yang berhasil diperoleh adalah <b>{total_new:,} pelanggan</b>.
@@ -1419,7 +1505,7 @@ elif page == "📋 Laporan Otomatis":
     """, unsafe_allow_html=True)
 
     insights = [
-        ("📈", C["primary"],  "Tren Penjualan", f"Revenue tumbuh {growth_rev:+.1f}% sepanjang 2025 dengan tren yang relatif stabil dan variasi bulanan kecil."),
+        ("📈", C["primary"],  "Tren Penjualan", f"Revenue tumbuh {growth_rev:+.1f}% sepanjang 2024 dengan tren yang relatif stabil dan variasi bulanan kecil."),
         ("🌍", C["accent"],   "Area Terbaik",   f"{best_area_name} adalah area dengan revenue tertinggi ({fmt_rp(area_rev.iloc[0])}). Perlu direplikasi ke area berkinerja rendah."),
         ("📦", C["primary2"], "Paket Terlaris",  f"Paket {best_pkg_name} menyumbang revenue tertinggi, sementara {best_pkg_vol} paling diminati pelanggan baru."),
         ("🔁", C["accent2"],  "Churn & Revenue", f"Korelasi churn vs revenue: {corr_cn:.2f}. Basis pelanggan stagnan karena new customer ≈ churn (replacement equilibrium)."),
