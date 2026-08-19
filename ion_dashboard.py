@@ -108,7 +108,7 @@ html, body, .stApp {{
     border: none !important;
     border-left: 3px solid transparent !important;
     border-radius: 0 !important;
-    padding: 8px 16px !important;
+    padding: 6px 12px !important;
     font-size: 0.875rem !important;
     font-weight: 500 !important;
     text-align: left !important;
@@ -134,6 +134,11 @@ section[data-testid="stSidebar"] {{ transform: none !important; left: 0 !importa
 .block-container {{
     padding: 0 !important;
     max-width: 100% !important;
+}}
+
+/* ── Main content area — beri jarak kiri agar tidak mepet sidebar ── */
+section.main > div {{
+    padding-left: 2rem !important;
 }}
 
 /* ── SIDEBAR ────────────────────────────────────────────────────── */
@@ -267,7 +272,7 @@ div[data-testid="stHorizontalBlock"] {{ gap: 16px; }}
     color: white;
 }}
 .ion-page-wrap {{
-    padding: 24px 40px 24px 44px;
+    padding: 24px 36px 24px 52px;
 }}
 .ion-card {{
     background: {C['card']};
