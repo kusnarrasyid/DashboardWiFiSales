@@ -1,7 +1,7 @@
 """
 ion_dashboard.py
 =================
-ION Network — Intelligent Dashboard
+X-Net — Intelligent Dashboard
 Dashboard analisis penjualan WiFi mirip referensi gambar:
 - Top navbar
 - Sidebar kiri dengan section labels
@@ -27,7 +27,7 @@ warnings.filterwarnings("ignore")
 # PAGE CONFIG
 # ─────────────────────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="ION Network Dashboard",
+    page_title="X-Net Dashboard",
     page_icon="📡",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -567,36 +567,57 @@ def load_forecast_precomputed():
     except:
         return None, None, None
 
-@st.cache_data
-def compute_forecast(file_bytes):
+def _fit_forecast(monthly_rev):
+    """Fit auto_arima pada revenue bulanan, lalu forecast 6 bulan setelah bulan terakhir data."""
     from pmdarima import auto_arima
-    df_tmp = pd.read_excel(io.BytesIO(file_bytes))
-    df_tmp["month"] = pd.to_datetime(df_tmp["month"])
-    monthly = df_tmp.groupby("month")["revenue"].sum().reset_index()
-    monthly = monthly.set_index("month").asfreq("MS").sort_index()
+    monthly = monthly_rev.asfreq("MS").sort_index()
     model = auto_arima(
-        monthly["revenue"], seasonal=True, m=12, D=0, d=None,
+        monthly, seasonal=True, m=12, D=0, d=None,
         error_action="ignore", suppress_warnings=True, stepwise=True
     )
-    fitted = model.predict_in_sample()
-    actual = monthly["revenue"].values
-    mape   = float(np.mean(np.abs((actual - fitted) / actual)) * 100)
-    n_fc   = 6
+    fitted = np.asarray(model.predict_in_sample(), dtype=float)
+    actual = monthly.values.astype(float)
+    # Lewati observasi awal yang ikut hilang karena differencing (fitted-nya tidak valid)
+    skip = int(model.order[1]) + int(model.seasonal_order[1]) * 12
+    mape = float(np.mean(np.abs((actual[skip:] - fitted[skip:]) / actual[skip:])) * 100)
+    n_fc = 6
     fc, ci = model.predict(n_periods=n_fc, return_conf_int=True)
+    fc, ci = np.asarray(fc, dtype=float), np.asarray(ci, dtype=float)
     fc_idx = pd.date_range(
         start=monthly.index[-1] + pd.DateOffset(months=1), periods=n_fc, freq="MS"
     )
     fdf = pd.DataFrame({
         "month":            fc_idx,
         "forecast_revenue": fc.round(0).astype(int),
-        "lower_95":         ci[:,0].round(0).astype(int),
-        "upper_95":         ci[:,1].round(0).astype(int),
+        "lower_95":         ci[:, 0].round(0).astype(int),
+        "upper_95":         ci[:, 1].round(0).astype(int),
     })
     fitdf = pd.DataFrame({
-        "month":          monthly.index,
-        "fitted_revenue": fitted.round(0).astype(int),
+        "month":          monthly.index[skip:],
+        "fitted_revenue": fitted[skip:].round(0).astype(int),
     })
     return fdf, fitdf, mape
+
+@st.cache_data
+def compute_forecast(file_bytes):
+    df_tmp = pd.read_excel(io.BytesIO(file_bytes))
+    df_tmp["month"] = pd.to_datetime(df_tmp["month"])
+    monthly = df_tmp.groupby("month")["revenue"].sum()
+    return _fit_forecast(monthly)
+
+@st.cache_data
+def compute_forecast_default():
+    """Forecast dihitung langsung dari dataset default, jadi selalu sinkron dengan datanya."""
+    df_tmp = load_data_default()
+    monthly = df_tmp.groupby("month")["revenue"].sum()
+    try:
+        return _fit_forecast(monthly)
+    except Exception:
+        # Fallback: pakai file hasil hitung sebelumnya, hanya jika periodenya cocok dengan data
+        fdf, fit, mape = load_forecast_precomputed()
+        if fdf is not None and fit is not None and fit["month"].max() == monthly.index.max():
+            return fdf, fit, mape
+        return None, None, None
 
 # ── Tentukan sumber data ──────────────────────────────────────────────────────
 _uploaded_bytes = st.session_state.get("uploaded_file_bytes", None)
@@ -611,7 +632,7 @@ if _uploaded_bytes is not None:
         forecast_df, fitted_df, mape_val = compute_forecast(_uploaded_bytes)
 else:
     df = load_data_default()
-    forecast_df, fitted_df, mape_val = load_forecast_precomputed()
+    forecast_df, fitted_df, mape_val = compute_forecast_default()
 
 monthly_all = df.groupby("month").agg(
     revenue=("revenue","sum"),
@@ -660,7 +681,7 @@ with st.sidebar:
     <div class='ion-brand'>
         <div class='ion-brand-icon'>📡</div>
         <div>
-            <div class='ion-brand-name'>ION Network</div>
+            <div class='ion-brand-name'>X-Net</div>
             <div class='ion-brand-tagline'>Intelligent Dashboard</div>
         </div>
     </div>
@@ -672,30 +693,7 @@ with st.sidebar:
         st.session_state.theme = "light" if st.session_state.theme == "dark" else "dark"
         st.rerun()
 
-    # ── Upload data Excel baru ───────────────────────────────────────
     st.markdown("<div class='ion-section-label'>DATA</div>", unsafe_allow_html=True)
-    uploaded = st.file_uploader(
-        "📂 Upload File Excel",
-        type=["xlsx"],
-        help="Kolom wajib: month, area, package, revenue, new_customers, churn_customers, total_customers",
-    )
-    if uploaded is not None:
-        fbytes = uploaded.read()
-        if st.session_state.get("uploaded_file_bytes") != fbytes:
-            st.session_state["uploaded_file_bytes"] = fbytes
-            st.session_state["uploaded_file_name"] = uploaded.name
-            load_data_uploaded.clear()
-            compute_forecast.clear()
-            st.rerun()
-    else:
-        if st.session_state.get("uploaded_file_bytes") is not None:
-            if st.button("🗑️ Hapus & kembali ke data default",
-                         use_container_width=True, key="btn_reset_data"):
-                st.session_state["uploaded_file_bytes"] = None
-                st.session_state["uploaded_file_name"] = None
-                load_data_uploaded.clear()
-                compute_forecast.clear()
-                st.rerun()
 
     _src_name  = st.session_state.get("uploaded_file_name") or "dataset_wifi_with_total.xlsx"
     _src_color = "#00D4AA" if st.session_state.get("uploaded_file_bytes") else C["primary"]
@@ -812,15 +810,17 @@ def metric_card(icon, bg, label, value, delta=None, delta_dir="up"):
         cls = "up" if delta_dir == "up" else "down"
         arrow = "▲" if delta_dir == "up" else "▼"
         delta_html = f"<div class='ion-metric-delta {cls}'>{arrow} {delta} vs bulan pertama</div>"
-    return f"""
-    <div class='ion-metric-card'>
-        <div class='ion-metric-icon' style='background:{bg}20;'>{icon}</div>
-        <div class='ion-metric-body'>
-            <div class='ion-metric-label'>{label}</div>
-            <div class='ion-metric-value'>{value}</div>
-            {delta_html}
-        </div>
-    </div>"""
+    html = (
+        f"<div class='ion-metric-card'>"
+        f"<div class='ion-metric-icon' style='background:{bg}20;'>{icon}</div>"
+        f"<div class='ion-metric-body'>"
+        f"<div class='ion-metric-label'>{label}</div>"
+        f"<div class='ion-metric-value'>{value}</div>"
+        f"{delta_html}"
+        f"</div>"
+        f"</div>"
+    )
+    return html
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -935,6 +935,9 @@ if page == "🏠 Overview":
             ))
             sfig(fig3, h=180)
             fig3.update_layout(margin=dict(l=0,r=0,t=10,b=0), showlegend=False)
+            _tc3 = monthly_all["total_customers"]
+            _pad3 = max((_tc3.max() - _tc3.min()) * 0.3, _tc3.max() * 0.005)
+            fig3.update_yaxes(range=[_tc3.min() - _pad3, _tc3.max() + _pad3])
             st.plotly_chart(fig3, use_container_width=True)
 
         with c3c:
@@ -1079,6 +1082,9 @@ elif page == "👥 Pelanggan":
             fillcolor="rgba(0,212,170,0.10)"
         ))
         sfig(fig)
+        _tc = monthly_all["total_customers"]
+        _pad = max((_tc.max() - _tc.min()) * 0.3, _tc.max() * 0.005)
+        fig.update_yaxes(range=[_tc.min() - _pad, _tc.max() + _pad])
         st.plotly_chart(fig, use_container_width=True)
 
     with col2:
@@ -1501,7 +1507,7 @@ elif page == "📋 Laporan Otomatis":
     <div class='ion-card'>
         <div style='font-size:0.75rem;color:{C['muted']};text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px;font-weight:700;'>📋 Ringkasan Eksekutif</div>
         <div style='font-size:0.92rem;color:{C['text']};line-height:1.8;'>
-            Selama periode <b>Januari – Desember 2024</b>, ION Network mencatatkan total revenue
+            Selama periode <b>Januari – Desember 2025</b>, X-Net mencatatkan total revenue
             sebesar <b style='color:{C['primary']}'>{fmt_rp(total_rev)}</b> dengan pertumbuhan
             <b style='color:{C['success']}'>{growth_rev:+.1f}%</b> dari bulan pertama ke bulan terakhir.
             Total pelanggan baru yang berhasil diperoleh adalah <b>{total_new:,} pelanggan</b>.
@@ -1510,7 +1516,7 @@ elif page == "📋 Laporan Otomatis":
     """, unsafe_allow_html=True)
 
     insights = [
-        ("📈", C["primary"],  "Tren Penjualan", f"Revenue tumbuh {growth_rev:+.1f}% sepanjang 2024 dengan tren yang relatif stabil dan variasi bulanan kecil."),
+        ("📈", C["primary"],  "Tren Penjualan", f"Revenue tumbuh {growth_rev:+.1f}% sepanjang 2025 dengan tren yang relatif stabil dan variasi bulanan kecil."),
         ("🌍", C["accent"],   "Area Terbaik",   f"{best_area_name} adalah area dengan revenue tertinggi ({fmt_rp(area_rev.iloc[0])}). Perlu direplikasi ke area berkinerja rendah."),
         ("📦", C["primary2"], "Paket Terlaris",  f"Paket {best_pkg_name} menyumbang revenue tertinggi, sementara {best_pkg_vol} paling diminati pelanggan baru."),
         ("🔁", C["accent2"],  "Churn & Revenue", f"Korelasi churn vs revenue: {corr_cn:.2f}. Basis pelanggan stagnan karena new customer ≈ churn (replacement equilibrium)."),
